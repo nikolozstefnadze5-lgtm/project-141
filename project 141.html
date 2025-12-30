@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaSkin AI - Smart Shower Analysis</title>
+    <style>
+        :root {
+            --primary-color: #0ea5e9;
+            --primary-dark: #0284c7;
+            --secondary-color: #6366f1;
+            --bg-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-color: #1e293b;
+            --text-light: #64748b;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Layout & Typography --- */
+        header {
+            background: var(--surface-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-controls button {
+            background: transparent;
+            border: 1px solid var(--text-light);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+
+        .nav-controls button:hover {
+            background: var(--bg-color);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 1rem;
+        }
+
+        /* --- Views Management --- */
+        .view {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Forms (Login/Register) --- */
+        .auth-container {
+            max-width: 400px;
+            margin: 4rem auto;
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: border 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .auth-toggle {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .auth-toggle span {
+            color: var(--primary-color);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* --- User Dashboard --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--surface-color);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .recording-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: none;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .recording-indicator.active {
+            display: flex;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .controls {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn-record {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 4px solid #e2e8f0;
+            background: var(--danger);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-record:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-record.recording {
+            background: var(--surface-color);
+            border-color: var(--danger);
+        }
+
+        .btn-record.recording::after {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 24px;
+            background: var(--danger);
+            border-radius: 4px;
+            margin: 12px auto;
+        }
+
+        .analysis-result {
+            margin-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .tag-skin { background: #fef3c7; color: #d97706; }
+        .tag-hair { background: #e0e7ff; color: #4338ca; }
+
+        /* --- Admin Dashboard --- */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .session-list {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .session-card {
+            background: var(--surface-color);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .session-header {
+            padding: 1rem;
+            background: #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .session-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        @media (max-width: 768px) {
+            .session-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .session-video {
+            background: #000;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            position: relative;
+        }
+        
+        /* Simulated video thumbnail placeholder */
+        .video-placeholder {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.6;
+        }
+
+        .session-data {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-verdict {
+            background: #f0fdf4;
+            border-left: 4px solid var(--success);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .admin-correction {
+            margin-top: auto;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius);
+            resize: vertical;
+            min-height: 80px;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-submit {
+            background: var(--secondary-color);
+            color: white;
+        }
+        
+        /* --- Toast Notifications --- */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--surface-color);
+            color: var(--text-color);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary-color);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error { border-left-color: var(--danger); }
+        .toast.success { border-left-color: var(--success); }
+
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+            </svg>
+            AquaSkin AI
+        </div>
+        <div class="nav-controls" id="navControls" style="display: none;">
+            <span id="welcomeMsg" style="margin-right: 1rem; font-size: 0.9rem;"></span>
+            <button onclick="app.logout()">Logout</button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main>
+        <!-- 1. Login View -->
+        <section id="view-login" class="view active">
+            <div class="auth-container">
+                <h2>Welcome Back</h2>
+                <p style="color: var(--text-light); margin-bottom: 1.5rem;">Login to access your skin analysis</p>
+                <form onsubmit="app.handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginName">Username</label>
+                        <input type="text" id="loginName" required placeholder="e.g. user or admin_admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPass">Password</label>
+                        <input type="password" id="loginPass" required placeholder="Enter password">
+                    </div>
+                    <button type="submit" class="btn-primary">Login</button>
+                </form>
+                <div class="auth-toggle">
+                    New here? <span onclick="app.switchView('view-register')">Create an account</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Register View -->
+        <section id="view-register" class="view">
+            <div class="auth-container">
+                <h2>Create Account</h2>
+                <p style="color: var(--text-light); margin-bottom: 1.5rem;">Start your personalized skincare journey</p>
+                <form onsubmit="app.handleRegister(event)">
+                    <div class="form-group">
+                        <label for="regName">Username</label>
+                        <input type="text" id="regName" required placeholder="Choose a username">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPass">Password</label>
+                        <input type="password" id="regPass" required placeholder="Create a password">
+                    </div>
+                    <div class="form-group">
+                        <label for="regSkin">Skin Type</label>
+                        <select id="regSkin" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: var(--radius);">
+                            <option value="oily">Oily</option>
+                            <option value="dry">Dry</option>
+                            <option value="combination">Combination</option>
+                            <option value="sensitive">Sensitive</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">Sign Up</button>
+                </form>
+                <div class="auth-toggle">
+                    Already have an account? <span onclick="app.switchView('view-login')">Login</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. User Dashboard (Client Side Recording) -->
+        <section id="view-user" class="view">
+            <div class="dashboard-grid">
+                <!-- Recording Column -->
+                <div class="card">
+                    <h2>Shower Session</h2>
+                    <p style="color: var(--text-light); margin-bottom: 1rem;">Start recording when you begin your routine. Our AI will analyze water usage and techniques.</p>
+                    
+                    <div class="video-wrapper">
+                        <video id="webcam" autoplay muted playsinline></video>
+                        <div class="recording-indicator" id="recIndicator">
+                            <div style="width: 10px; height: 10px; background: red; border-radius: 50%;"></div>
+                            REC
+                        </div>
+                        <div id="videoStatus" style="position: absolute; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; display:none;">
+                            Camera Inactive
+                        </div>
+                    </div>
+
+                    <div class="controls">
+                        <button id="recordBtn" class="btn-record" onclick="app.toggleRecording()" aria-label="Start Recording"></button>
+                    </div>
+                    <div style="text-align: center; margin-top: 0.5rem; color: var(--text-light); font-size: 0.9rem;">
+                        Tap to Start/Stop
+                    </div>
+                </div>
+
+                <!-- Analysis Column -->
+                <div class="card">
+                    <h2>AI Analysis & Tips</h2>
+                    <div id="analysis-placeholder" style="text-align: center; color: var(--text-light); padding: 3rem 0;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <p>Record a session to receive real-time recommendations.</p>
+                    </div>
+
+                    <div id="analysis-content" style="display: none;">
+                        <h3>Session Results</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <strong>Duration:</strong> <span id="res-duration">0s</span>
+                        </div>
+                        
+                        <h4>Detected Needs:</h4>
+                        <div id="res-tags" style="margin-bottom: 1rem;">
+                            <!-- Tags injected here -->
+                        </div>
+
+                        <h4>AI Recommendations:</h4>
+                        <p id="res-text" style="background: #f8fafc; padding: 1rem; border-radius: var(--radius); border: 1px solid #e2e8f0; line-height: 1.6;">
+                            <!-- AI Text -->
+                        </p>
+
+                        <div id="admin-note-area" style="margin-top: 1.5rem; display: none; border-top: 1px dashed var(--text-light); padding-top: 1rem;">
+                            <h4 style="color: var(--secondary-color);">Dermatologist (Admin) Note:</h4>
+                            <p id="admin-note-text" style="font-style: italic; color: var(--text-color);"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Admin Dashboard -->
+        <section id="view-admin" class="view">
+            <div class="admin-header">
+                <div>
+                    <h2>Admin Dashboard</h2>
+                    <p style="color: var(--text-light);">Review user footage and provide expert corrections.</p>
+                </div>
+                <button class="btn-primary" style="width: auto;" onclick="app.refreshAdminData()">Refresh Data</button>
+            </div>
+
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-total-users">0</div>
+                    <div>Registered Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-total-sessions">0</div>
+                    <div>Shower Sessions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-pending-reviews">0</div>
+                    <div>Pending Reviews</div>
+                </div>
+            </div>
+
+            <h3>Recent Sessions</h3>
+            <div id="session-list" class="session-list">
+                <!-- Session Cards injected via JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        /**
+         * Application Logic
+         * Uses LocalStorage to persist users and simulated video sessions.
+         */
+        const app = {
+            currentUser: null,
+            mediaStream: null,
+            mediaRecorder: null,
+            recordedChunks: [],
+            isRecording: false,
+            recordingStartTime: 0,
+            
+            // Constants
+            ADMIN_USER: 'admin_admin',
+            ADMIN_PASS: 'admin1234',
+
+            init() {
+                // Initialize storage if empty
+                if (!localStorage.getItem('as_users')) {
+                    localStorage.setItem('as_users', JSON.stringify([]));
+                }
+                if (!localStorage.getItem('as_sessions')) {
+                    localStorage.setItem('as_sessions', JSON.stringify([]));
+                }
+                
+                this.checkSession();
+            },
+
+            // --- Authentication ---
+
+            handleLogin(e) {
+                e.preventDefault();
+                const username = document.getElementById('loginName').value.trim();
+                const password = document.getElementById('loginPass').value;
+
+                // Admin Check
+                if (username === this.ADMIN_USER && password === this.ADMIN_PASS) {
+                    this.loginAdmin();
+                    return;
+                }
+
+                // User Check
+                const users = JSON.parse(localStorage.getItem('as_users'));
+                const user = users.find(u => u.username === username && u.password === password);
+
+                if (user) {
+                    this.loginUser(user);
+                } else {
+                    this.showToast('Invalid username or password', 'error');
+                }
+            },
+
+            handleRegister(e) {
+                e.preventDefault();
+                const username = document.getElementById('regName').value.trim();
+                const password = document.getElementById('regPass').value;
+                const skinType = document.getElementById('regSkin').value;
+
+                const users = JSON.parse(localStorage.getItem('as_users'));
+
+                if (users.find(u => u.username === username)) {
+                    this.showToast('Username already exists', 'error');
+                    return;
+                }
+
+                const newUser = {
+                    id: Date.now().toString(),
+                    username,
+                    password,
+                    skinType,
+                    joined: new Date().toISOString()
+                };
+
+                users.push(newUser);
+                localStorage.setItem('as_users', JSON.stringify(users));
+                
+                this.showToast('Registration successful! Please login.', 'success');
+                this.switchView('view-login');
+            },
+
+            loginAdmin() {
+                this.currentUser = { role: 'admin', username: 'Admin' };
+                this.updateUIForUser();
+                this.switchView('view-admin');
+                this.loadAdminData();
+                this.showToast('Welcome Admin', 'success');
+            },
+
+            loginUser(user) {
+                this.currentUser = { ...user, role: 'user' };
+                this.updateUIForUser();
+                this.switchView('view-user');
+                this.initCamera();
+                this.showToast(`Welcome back, ${user.username}`, 'success');
+            },
+
+            logout() {
+                this.stopCamera();
+                this.currentUser = null;
+                document.getElementById('navControls').style.display = 'none';
+                document.getElementById('loginName').value = '';
+                document.getElementById('loginPass').value = '';
+                this.switchView('view-login');
+                this.showToast('Logged out successfully', 'success');
+            },
+
+            checkSession() {
+                // In a real app, check JWT/cookie. Here just start at login.
+                this.switchView('view-login');
+            },
+
+            updateUIForUser() {
+                const nav = document.getElementById('navControls');
+                const welcome = document.getElementById('welcomeMsg');
+                nav.style.display = 'flex';
+                welcome.textContent = `Hello, ${this.currentUser.username}`;
+            },
+
+            // --- Navigation ---
+            
+            switchView(viewId) {
+                document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+                document.getElementById(viewId).classList.add('active');
+            },
+
+            // --- User Dashboard: Camera & Recording ---
+
+            async initCamera() {
+                try {
+                    this.mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    const video = document.getElementById('webcam');
+                    video.srcObject = this.mediaStream;
+                } catch (err) {
+                    console.error("Camera access denied", err);
+                    this.showToast('Camera access is required for analysis.', 'error');
+                    document.getElementById('videoStatus').style.display = 'block';
+                    document.getElementById('videoStatus').textContent = 'Camera Access Denied';
+                }
+            },
+
+            stopCamera() {
+                if (this.mediaStream) {
+                    this.mediaStream.getTracks().forEach(track => track.stop());
+                    this.mediaStream = null;
+                }
+                this.isRecording = false;
+                this.updateRecordButton();
+            },
+
+            toggleRecording() {
+                if (!this.mediaStream) {
+                    this.showToast('Camera not ready', 'error');
+                    return;
+                }
+
+                if (this.isRecording) {
+                    this.stopRecording();
+                } else {
+                    this.startRecording();
+                }
+            },
+
+            startRecording() {
+                this.recordedChunks = [];
+                // Prefer mp4, fallback to webm
+                let options = { mimeType: 'video/webm;codecs=vp9' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm' };
+                }
+
+                try {
+                    this.mediaRecorder = new MediaRecorder(this.mediaStream, options);
+                } catch (e) {
+                    this.showToast('Recorder not supported by browser', 'error');
+                    return;
+                }
+
+                this.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        this.recordedChunks.push(event.data);
+                    }
+                };
+
+                this.mediaRecorder.onstop = () => {
+                    this.processRecording();
+                };
+
+                this.mediaRecorder.start();
+                this.isRecording = true;
+                this.recordingStartTime = Date.now();
+                this.updateRecordButton();
+                document.getElementById('recIndicator').classList.add('active');
+            },
+
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.updateRecordButton();
+                    document.getElementById('recIndicator').classList.remove('active');
+                }
+            },
+
+            updateRecordButton() {
+                const btn = document.getElementById('recordBtn');
+                if (this.isRecording) {
+                    btn.classList.add('recording');
+                } else {
+                    btn.classList.remove('recording');
+                }
+            },
+
+            processRecording() {
+                const duration = Math.floor((Date.now() - this.recordingStartTime) / 1000);
+                const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                
+                // In a real app, we would upload the BLOB to a server.
+                // Since this is local only, we cannot store large video blobs in LocalStorage reliably.
+                // We will simulate the storage by creating a metadata entry.
+                // We will create a temporary URL for the current session to simulate "Playback" for the admin.
+
+                this.showToast('Analyzing shower session...', 'success');
+
+                // Simulate AI Processing delay
+                setTimeout(() => {
+                    const analysis = this.generateAIAnalysis(duration);
+                    this.saveSession(duration, analysis, blob);
+                    this.displayAnalysis(duration, analysis);
+                }, 2000);
+            },
+
+            generateAIAnalysis(duration) {
+                // Simulated AI Logic
+                const skinType = this.currentUser.skinType;
+                let tags = [];
+                let text = "";
+
+                // Randomly determine skin state based on "AI" randomness
+                const isDry = Math.random() > 0.5;
+                
+                if (skinType === 'oily') {
+                    tags.push({ type: 'skin', text: 'Excess Oil Detected' });
+                    text = "I noticed some oil buildup around the T-zone. Consider using a foaming cleanser with salicylic acid. Keep the water temperature lukewarm to prevent over-stimulation of sebaceous glands.";
+                } else if (skinType === 'dry') {
+                    tags.push({ type: 'skin', text: 'Flakiness Detected' });
+                    text = "Your skin appears dehydrated. Avoid hot water and limit shower time to under 5 minutes. I recommend a cream-based cleanser and immediate moisturizer application while skin is still damp.";
+                } else {
+                    tags.push({ type: 'skin', text: 'Balanced Hydration' });
+                    text = "Your skin balance looks good. Maintain your current routine. Ensure you are rinsing thoroughly to avoid product residue.";
+                }
+
+                // Hair logic
+                if (duration > 10) {
+                    tags.push({ type: 'hair', text: 'Potential Hygral Fatigue' });
+                    text += " <br><br><strong>Hair Alert:</strong> The shower duration was quite long. Prolonged exposure to water can swell the hair shaft (hygral fatigue). Try to reduce rinse time.";
+                } else {
+                    tags.push({ type: 'hair', text: 'Healthy Cuticles' });
+                    text += " <br><br><strong>Hair Status:</strong> Rinsing time was optimal for maintaining hair cuticle integrity.";
+                }
+
+                return { tags, text, adminNote: null };
+            },
+
+            saveSession(duration, analysis, blob) {
+                const sessions = JSON.parse(localStorage.getItem('as_sessions'));
+                
+                // We can't save the actual blob to localStorage. We will simulate that the admin "has access"
+                // by checking if the session ID exists. For the demo, the admin view will show a placeholder
+                // or the blob URL if the admin clicks play immediately (if we kept it in memory).
+                // For this persistent demo, we store metadata only.
+                
+                const newSession = {
+                    id: Date.now().toString(),
+                    userId: this.currentUser.id,
+                    username: this.currentUser.username,
+                    timestamp: new Date().toISOString(),
+                    duration: duration,
+                    analysis: analysis,
+                    // In a real app: videoUrl: 'https://server.com/videos/xyz.mp4'
+                    videoUrl: null 
+                };
+
+                sessions.unshift(newSession); // Add to top
+                localStorage.setItem('as_sessions', JSON.stringify(sessions));
+            },
+
+            displayAnalysis(duration, analysis) {
+                document.getElementById('analysis-placeholder').style.display = 'none';
+                document.getElementById('analysis-content').style.display = 'block';
+
+                document.getElementById('res-duration').textContent = duration + 's';
+                
+                const tagsContainer = document.getElementById('res-tags');
+                tagsContainer.innerHTML = '';
+                analysis.tags.forEach(tag => {
+                    const el = document.createElement('span');
+                    el.className = `tag tag-${tag.type}`;
+                    el.textContent = tag.text;
+                    tagsContainer.appendChild(el);
+                });
+
+                document.getElementById('res-text').innerHTML = analysis.text;
+
+                const noteArea = document.getElementById('admin-note-area');
+                if (analysis.adminNote) {
+                    noteArea.style.display = 'block';
+                    document.getElementById('admin-note-text').textContent = analysis.adminNote;
+                } else {
+                    noteArea.style.display = 'none';
+                }
+            },
+
+            // --- Admin Logic ---
+
+            loadAdminData() {
+                const users = JSON.parse(localStorage.getItem('as_users'));
+                const sessions = JSON.parse(localStorage.getItem('as_sessions'));
+
+                document.getElementById('stat-total-users').textContent = users.length;
+                document.getElementById('stat-total-sessions').textContent = sessions.length;
+                document.getElementById('stat-pending-reviews').textContent = sessions.filter(s => !s.analysis.adminNote).length;
+
+                const listContainer = document.getElementById('session-list');
+                listContainer.innerHTML = '';
+
+                if (sessions.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align:center; color:var(--text-light);">No sessions recorded yet.</p>';
+                    return;
+                }
+
+                sessions.forEach(session => {
+                    const date = new Date(session.timestamp).toLocaleString();
+                    const hasNote = session.analysis.adminNote ? 'has-note' : '';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'session-card';
+                    card.innerHTML = `
+                        <div class="session-header">
+                            <strong>${session.username}</strong>
+                            <span style="color: var(--text-light); font-size: 0.9rem;">${date}</span>
+                        </div>
+                        <div class="session-content">
+                            <div class="session-video">
+                                <!-- Placeholder image for "Video" -->
+                                <img src="https://picsum.photos/seed/${session.id}/600/340" class="video-placeholder" alt="Video Thumbnail">
+                                <div style="position:absolute; background:rgba(0,0,0,0.6); padding:5px 10px; border-radius:4px;">
+                                    Duration: ${session.duration}s
+                                </div>
+                            </div>
+                            <div class="session-data">
+                                <div class="ai-verdict">
+                                    <strong>Initial AI Analysis:</strong>
+                                    <p style="font-size:0.9rem; margin-top:0.5rem;">${session.analysis.text.replace(/<br>/g, ' ')}</p>
+                                </div>
+                                
+                                ${session.analysis.adminNote ? 
+                                    `<div style="background:#fff1f2; color:#be123c; padding:0.5rem; border-radius:6px; margin-bottom:1rem; font-size:0.9rem;">
+                                        <strong>Admin Correction Applied:</strong> ${session.analysis.adminNote}
+                                     </div>` : ''
+                                }
+
+                                <div class="admin-correction">
+                                    <label><strong>Dermatologist Correction (Admin)</strong></label>
+                                    <textarea id="note-${session.id}" placeholder="Correct the AI recommendation or add clinical advice...">${session.analysis.adminNote || ''}</textarea>
+                                    <button class="btn-small btn-submit" onclick="app.submitAdminCorrection('${session.id}')">
+                                        ${session.analysis.adminNote ? 'Update Advice' : 'Send to User'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+            },
+
+            submitAdminCorrection(sessionId) {
+                const note = document.getElementById(`note-${sessionId}`).value.trim();
+                if (!note) {
+                    this.showToast('Please enter a correction', 'error');
+                    return;
+                }
+
+                const sessions = JSON.parse(localStorage.getItem('as_sessions'));
+                const sessionIndex = sessions.findIndex(s => s.id === sessionId);
+                
+                if (sessionIndex > -1) {
+                    sessions[sessionIndex].analysis.adminNote = note;
+                    localStorage.setItem('as_sessions', JSON.stringify(sessions));
+                    this.showToast('Correction sent to user', 'success');
+                    this.loadAdminData(); // Refresh to show update status
+                }
+            },
+
+            refreshAdminData() {
+                this.loadAdminData();
+                this.showToast('Data refreshed', 'success');
+            },
+
+            // --- Utilities ---
+
+            showToast(message, type = 'success') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                
+                container.appendChild(toast);
+                
+                // Trigger animation
+                requestAnimationFrame(() => {
+                    toast.classList.add('show');
+                });
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+        };
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+    </script>
+</body>
+</html>
